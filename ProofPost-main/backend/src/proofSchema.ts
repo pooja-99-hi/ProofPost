@@ -35,6 +35,9 @@ export interface ClaimGrounding {
   claim: string;
   matchedSourceSpan: string | null;
   grounded: boolean;
+  overlapScore: number;
+  numbersInClaim: string[];
+  numbersMatchedInSource: boolean;
 }
 
 export interface ProofBundle {

@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+ProofPost-main/backend/node_modules/
+proofpost-verified-content/node_modules/
+
+# Production builds
+dist/
+ProofPost-main/backend/dist/
+proofpost-verified-content/dist/
+proofpost-verified-content/.output/
+proofpost-verified-content/.nitro/
+proofpost-verified-content/.wrangler/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

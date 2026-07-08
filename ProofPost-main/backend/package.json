@@ -4,6 +4,7 @@
   "private": true,
   "description": "ProofPost backend: content generation and proof bundles for CROO/CAP.",
   "scripts": {
+    "start": "tsx src/server.ts",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "provider": "tsx src/provider.ts",

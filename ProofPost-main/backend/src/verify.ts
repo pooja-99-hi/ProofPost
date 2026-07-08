@@ -48,7 +48,7 @@ function stripPresentationNoise(text: string): string {
 }
 
 function extractNumbers(text: string): string[] {
-  const matches = text.match(/\b\d+(?:\.\d+)?%?\b/g) ?? [];
+  const matches = text.match(/\d+(?:\.\d+)?%?/g) ?? [];
   return matches.map((value) => value.toLowerCase());
 }
 
@@ -138,10 +138,16 @@ function collectClaimGrounding(content: GeneratedContent, sourceText: string): C
 
   return claims.map((claim) => {
     const matchedSourceSpan = findBestSourceSpan(claim, sourceSentences);
+    const claimNumbers = extractNumbers(claim);
+    const score = matchedSourceSpan ? overlapScore(claim, matchedSourceSpan) : 0;
+    const numbersMatchedInSource = matchedSourceSpan !== null;
     return {
       claim,
       matchedSourceSpan,
       grounded: matchedSourceSpan !== null,
+      overlapScore: score,
+      numbersInClaim: claimNumbers,
+      numbersMatchedInSource,
     };
   });
 }
