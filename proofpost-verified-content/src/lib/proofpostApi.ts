@@ -1,6 +1,8 @@
 // ProofPost client-side API adapter.
 // Communicates with backend HTTP API at http://localhost:3001 with dynamic fallback to in-browser execution.
 
+import { generateAndVerifyServer, getOrderHistoryServer } from "./proofpostServer";
+
 export type Platform = "x_thread" | "linkedin_post" | "newsletter_blurb";
 
 export interface OrderRequirements {
@@ -44,22 +46,53 @@ export const X_LIMIT = 280;
 export const NEWSLETTER_LIMIT = 600;
 export const LINKEDIN_LIMIT = 3000;
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+async function getEffectiveBackendUrl(): Promise<string> {
+  const explicitUrl = import.meta.env.VITE_BACKEND_URL;
+  if (explicitUrl) return explicitUrl;
+
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 800);
+    const res = await fetch("http://localhost:3001/api/history", { signal: controller.signal });
+    clearTimeout(id);
+    if (res.ok) return "http://localhost:3001";
+  } catch {}
+
+  return "";
+}
 
 // Simple client-side status checker
 export async function checkBackendStatus(): Promise<boolean> {
+  const explicitUrl = import.meta.env.VITE_BACKEND_URL;
+  if (explicitUrl) {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 1000);
+      const res = await fetch(`${explicitUrl}/api/history`, { signal: controller.signal });
+      clearTimeout(id);
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   try {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 1200);
-    const res = await fetch(`${BACKEND_URL}/api/history`, { 
-      method: "GET",
-      signal: controller.signal
-    });
+    const id = setTimeout(() => controller.abort(), 800);
+    const res = await fetch("http://localhost:3001/api/history", { signal: controller.signal });
+    clearTimeout(id);
+    if (res.ok) return true;
+  } catch {}
+
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 800);
+    const res = await fetch("/api/history", { signal: controller.signal });
     clearTimeout(id);
     return res.ok;
-  } catch {
-    return false;
-  }
+  } catch {}
+
+  return false;
 }
 
 // ---------------- In-Browser Fallback Engine ----------------
@@ -339,8 +372,20 @@ export async function generateAndVerify(
   }
 
   try {
-    console.log(`[proofpostApi] Sending generate request to backend (${mode})...`);
-    const res = await fetch(`${BACKEND_URL}/api/generate-and-verify`, {
+    const targetUrl = await getEffectiveBackendUrl();
+    if (!targetUrl) {
+      console.log(`[proofpostApi] Standalone server offline. Invoking TanStack Server Function (${mode}).`);
+      return await generateAndVerifyServer({
+        requirements: req,
+        options: {
+          fabricate: opts.fabricate,
+          mode
+        }
+      });
+    }
+
+    console.log(`[proofpostApi] Sending generate request to backend (${mode}) at: ${targetUrl}...`);
+    const res = await fetch(`${targetUrl}/api/generate-and-verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -370,7 +415,13 @@ export async function generateAndVerify(
 
 export async function getOrderHistory(): Promise<Delivery[]> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/history`);
+    const targetUrl = await getEffectiveBackendUrl();
+    if (!targetUrl) {
+      console.log("[proofpostApi] Standalone server offline. Invoking getOrderHistory Server Function.");
+      return await getOrderHistoryServer();
+    }
+
+    const res = await fetch(`${targetUrl}/api/history`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
   } catch (err) {
