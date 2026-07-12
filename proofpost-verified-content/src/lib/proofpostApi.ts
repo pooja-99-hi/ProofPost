@@ -44,7 +44,7 @@ export const X_LIMIT = 280;
 export const NEWSLETTER_LIMIT = 600;
 export const LINKEDIN_LIMIT = 3000;
 
-const BACKEND_URL = "http://localhost:3001";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 
 // Simple client-side status checker
 export async function checkBackendStatus(): Promise<boolean> {
